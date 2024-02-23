@@ -71,41 +71,47 @@ namespace VSExtension.ToolWindows
     private void RemoveSingleLineComment(ref string func)
     {
       Regex reg = new Regex(@"//(.*\\\n)*.*\n");
-      func = reg.Replace(func, "\n");
+      func = reg.Replace(func, "");
     }
 
     private void RemoveMultipleLinesComment(ref string func)
     {
+      string comment = @"/\*(.*?\n)*?.*?\*\/";
       int count;
-      string pattern = @"/\*(.*?\n)*?.*?\*/";
-      Match match = Regex.Match(func, pattern);
-      while (match.Success)
+      // Replace comment entries in multichar string
       {
-        count = Strings(match.Value);
-        string newString = new string('\n', count);
-        Regex reg = new Regex(pattern);
-        func = reg.Replace(func, newString, 1);
-        match = match.NextMatch();
+        string stringDelim = @"""";
+        string commentInString = @""".*?" + comment + @".*?""";
+        Match patternMatch = Regex.Match(func, commentInString);
+
+        while (patternMatch.Success)
+        {
+          count = Strings(patternMatch.Value);
+          string newString = new string('\n', count);
+          newString = stringDelim + newString + stringDelim;
+
+          Regex reg = new Regex(commentInString);
+          func = reg.Replace(func, newString);
+          patternMatch = patternMatch.NextMatch();
+        }
       }
+      {
+        Match patternMatch = Regex.Match(func, comment);
+
+        while (patternMatch.Success)
+        {
+          count = Strings(patternMatch.Value);
+          string newString = new string('\n', count);
+          Regex reg = new Regex(comment);
+          func = reg.Replace(func, newString, 1);
+          patternMatch = patternMatch.NextMatch();
+        }
+      }
+
     }
 
     private void RemoveSingleSymbolQuote(ref string func)
     {
-      string newString = "";
-      Match match = Regex.Match(func, @"('.*?')|('.*?\n)");
-      if (match.Success)
-      {
-        if (match.Value[match.Value.Length - 1] != '\n')
-        {
-          newString += " lavax ";
-        }
-        else
-        {
-          newString += " lavax\n";
-        }
-        Regex reg = new Regex(@"('.*?')|('.*?\n)");
-        func = reg.Replace(func, newString, 1);
-      }
     }
 
     private void RemoveMultipleSymbolsQuote(ref string func)
@@ -150,27 +156,9 @@ namespace VSExtension.ToolWindows
       func = reg.Replace(func, "");
 
       ConvertToLf(ref func);
-
-      for (int i = 0; i < func.Length - 2; ++i)
-      {
-        if (func[i] == '/' && func[i + 1] == '/')
-        {
-          RemoveSingleLineComment(ref func);
-          MessageBox.Show(func);
-        }
-        else if (func[i] == '/' && func[i + 1] == '*')
-        {
-          RemoveMultipleLinesComment(ref func);
-        }
-        else if (func[i] == '"')
-        {
-          RemoveMultipleSymbolsQuote(ref func);
-        }
-        else if (func[i] == '\'')
-        {
-          RemoveSingleSymbolQuote(ref func);
-        }
-      }
+      RemoveSingleLineComment(ref func);
+      RemoveMultipleLinesComment(ref func);
+      MessageBox.Show(func);
 
       bool emptyStr = true;
       int duplicate = 0;

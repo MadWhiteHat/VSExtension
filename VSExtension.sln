@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.34601.136
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VSExtensionTest", "VSExtensionTest\VSExtensionTest.vcxproj", "{E37DFFF7-A278-4E6E-9749-3A101D491964}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VSExtension", "VSExtension\VSExtension.csproj", "{3634BD1A-12A5-4DDC-B73E-D9E751E5207F}"
 EndProject
 Global
@@ -19,22 +17,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|Any CPU.Build.0 = Debug|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|arm64.ActiveCfg = Debug|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|arm64.Build.0 = Debug|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|x64.ActiveCfg = Debug|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|x64.Build.0 = Debug|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|x86.ActiveCfg = Debug|Win32
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Debug|x86.Build.0 = Debug|Win32
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|Any CPU.ActiveCfg = Release|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|Any CPU.Build.0 = Release|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|arm64.ActiveCfg = Release|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|arm64.Build.0 = Release|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|x64.ActiveCfg = Release|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|x64.Build.0 = Release|x64
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|x86.ActiveCfg = Release|Win32
-		{E37DFFF7-A278-4E6E-9749-3A101D491964}.Release|x86.Build.0 = Release|Win32
 		{3634BD1A-12A5-4DDC-B73E-D9E751E5207F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3634BD1A-12A5-4DDC-B73E-D9E751E5207F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3634BD1A-12A5-4DDC-B73E-D9E751E5207F}.Debug|arm64.ActiveCfg = Debug|Any CPU
