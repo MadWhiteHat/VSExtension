@@ -1,6 +1,7 @@
 ﻿using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -16,11 +17,10 @@ namespace VSExtension.ToolWindows
     }
 
     [SuppressMessage("Microsoft.Globalization", "CA1300:SpecifyMessageBoxOptions", Justification = "Sample code")]
-    [SuppressMessage("StyleCop.CSharp.NamingRules", "SA1300:ElementMustBeginWithUpperCaseLetter", Justification = "Default event handler naming pattern")]
     private int NumOfObjects(CodeElements codeElements)
     {
       int numOfObj = 0;
-      CodeElement codeElement = null;
+      CodeElement codeElement;
 
       ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -35,14 +35,14 @@ namespace VSExtension.ToolWindows
       return numOfObj;
     }
 
-    private void AddRow(int count)
+    private void AddRows(int count)
     {
       for (int i = 0; i < count; ++i)
       {
         InfoTable.Items.Add(new { Function = "0", Lines = "0", LinesWithoutComments = "0", KeyWords = "0" });
       }
     }
-    private void RemoveRow(int count)
+    private void RemoveRows(int count)
     {
       for (int i = 0; i < count; ++i)
       {
@@ -50,12 +50,12 @@ namespace VSExtension.ToolWindows
       }
     }
 
-    private int NumOfLines(CodeFunction codeFunction)
+    private int NumOfLines(TextPoint startPoint, TextPoint endPoint)
     {
 
       ThreadHelper.ThrowIfNotOnUIThread();
 
-      return codeFunction.GetEndPoint(vsCMPart.vsCMPartBodyWithDelimiter).Line - codeFunction.GetStartPoint(vsCMPart.vsCMPartHeader).Line + 1;
+      return endPoint.Line - startPoint.Line + 1;
     }
 
     private int Strings(string input)
@@ -68,44 +68,28 @@ namespace VSExtension.ToolWindows
       return res;
     }
 
-    private int SingleCommentTample(ref string func)
+    private void RemoveSingleLineComment(ref string func)
     {
-      string newString = "";
-      int count = 0;
-      Match match = Regex.Match(func, @"//(.*\\\r\n)*.*\n");
-      if (match.Success)
-      {
-        count = Strings(match.Value);
-        for (int i = 0; i < count; ++i)
-        {
-          newString += " lav.ax\n";
-          Regex reg = new Regex(@"//(.*\\\r\n)*.*\n");
-          func = reg.Replace(func, newString, 1);
-        }
-      }
-      return count;
+      Regex reg = new Regex(@"//(.*\\\n)*.*\n");
+      func = reg.Replace(func, "\n");
     }
 
-    private int MultipleCommentTample(ref string func)
+    private void RemoveMultipleLinesComment(ref string func)
     {
-      string newString = "";
-      int count = 0;
-      Match match = Regex.Match(func, @"/\*(.*?\n)*?.*?\*/");
-      if (match.Success)
+      int count;
+      string pattern = @"/\*(.*?\n)*?.*?\*/";
+      Match match = Regex.Match(func, pattern);
+      while (match.Success)
       {
         count = Strings(match.Value);
-        for (int i = 0; i < count; ++i)
-        {
-          newString += " lav.ax\n";
-        }
-        newString += " lav.ax ";
-        Regex reg = new Regex(@"/\*(.*?\n)*?.*?\*/");
+        string newString = new string('\n', count);
+        Regex reg = new Regex(pattern);
         func = reg.Replace(func, newString, 1);
+        match = match.NextMatch();
       }
-      return count + 1;
     }
 
-    private void SingleQuoteTample(ref string func)
+    private void RemoveSingleSymbolQuote(ref string func)
     {
       string newString = "";
       Match match = Regex.Match(func, @"('.*?')|('.*?\n)");
@@ -124,7 +108,7 @@ namespace VSExtension.ToolWindows
       }
     }
 
-    private void MultipleQuoteTample(ref string func)
+    private void RemoveMultipleSymbolsQuote(ref string func)
     {
       string newString = "";
       int count = 0;
@@ -145,6 +129,15 @@ namespace VSExtension.ToolWindows
       }
     }
 
+    private void ConvertToLf(ref string func)
+    {
+      Regex cr = new Regex(@"\r");
+      func = cr.Replace(func, "\n");
+
+      Regex lflf = new Regex(@"\n\n");
+      func = lflf.Replace(func, "\n");
+    }
+
     private int NumOfCodeLines(TextPoint begin, TextPoint end, ref string func)
     {
       int delta = 0;
@@ -153,27 +146,29 @@ namespace VSExtension.ToolWindows
 
       func = begin.CreateEditPoint().GetLines(begin.Line, end.Line + 1);
       func += '\n';
-      Regex reg = new Regex(@"\\""");
+      Regex reg = new Regex(@"\\'");
       func = reg.Replace(func, "");
-      reg = new Regex(@"\\'");
-      func = reg.Replace(func, "");
+
+      ConvertToLf(ref func);
+
       for (int i = 0; i < func.Length - 2; ++i)
       {
         if (func[i] == '/' && func[i + 1] == '/')
         {
-          delta += SingleCommentTample(ref func);
+          RemoveSingleLineComment(ref func);
+          MessageBox.Show(func);
         }
         else if (func[i] == '/' && func[i + 1] == '*')
         {
-          delta += MultipleCommentTample(ref func);
+          RemoveMultipleLinesComment(ref func);
         }
         else if (func[i] == '"')
         {
-          MultipleQuoteTample(ref func);
+          RemoveMultipleSymbolsQuote(ref func);
         }
         else if (func[i] == '\'')
         {
-          SingleQuoteTample(ref func);
+          RemoveSingleSymbolQuote(ref func);
         }
       }
 
@@ -189,7 +184,7 @@ namespace VSExtension.ToolWindows
           }
           if (duplicate > 1)
           {
-            delta -= (duplicate - 1);
+            delta -= duplicate - 1;
           }
           emptyStr = true;
           duplicate = 0;
@@ -223,7 +218,6 @@ namespace VSExtension.ToolWindows
         string pattern = "";
         pattern += KeyWords[i] + "\\W";
         res += Regex.Matches(func, @pattern).Count;
-        pattern = null;
         pattern = "(_";
         pattern += KeyWords[i] + "\\W" + ")|(\\w" + KeyWords[i] + "\\W)";
         res -= Regex.Matches(func, @pattern).Count;
@@ -233,11 +227,11 @@ namespace VSExtension.ToolWindows
 
     private void Update(object sender, RoutedEventArgs e)
     {
-      int lines = 0;
-      int linesWithoutComments = 0;
-      int keyWords = 0;
-      int numOfObjects = 0;
-      string name = null;
+      int lines;
+      int linesWithoutComments;
+      int keyWords;
+      int numOfObjects;
+      string name;
       string func = null;
 
       ThreadHelper.ThrowIfNotOnUIThread();
@@ -248,11 +242,11 @@ namespace VSExtension.ToolWindows
       numOfObjects = NumOfObjects(codeElements);
       if (InfoTable.Items.Count < numOfObjects)
       {
-        AddRow(numOfObjects - InfoTable.Items.Count);
+        AddRows(numOfObjects - InfoTable.Items.Count);
       }
       else if (InfoTable.Items.Count > numOfObjects)
       {
-        RemoveRow(InfoTable.Items.Count - numOfObjects);
+        RemoveRows(InfoTable.Items.Count - numOfObjects);
       }
       for (int i = 1, j = 0; i <= codeElements.Count; ++i)
       {
@@ -260,10 +254,12 @@ namespace VSExtension.ToolWindows
         if (codeElement.Kind == vsCMElement.vsCMElementFunction)
         {
           func = null;
-          var codeElem = codeElements.Item(i) as CodeFunction;
-          name = codeElem.FullName;
-          lines = NumOfLines(codeElem);
-          linesWithoutComments = NumOfCodeLines(codeElem.GetStartPoint(vsCMPart.vsCMPartHeader), codeElem.GetEndPoint(vsCMPart.vsCMPartBodyWithDelimiter), ref func);
+          CodeFunction codeFunc = codeElements.Item(i) as CodeFunction;
+          TextPoint startPoint = codeFunc.GetStartPoint(vsCMPart.vsCMPartHeader);
+          TextPoint endPoint = codeFunc.GetEndPoint(vsCMPart.vsCMPartBodyWithDelimiter);
+          name = codeFunc.FullName;
+          lines = NumOfLines(startPoint, endPoint);
+          linesWithoutComments = NumOfCodeLines(startPoint, endPoint, ref func);
           keyWords = NumOfKeyWords(func);
           InfoTable.Items[j] = new { Function = name, Lines = lines.ToString(), LinesWithoutComments = linesWithoutComments.ToString(), KeyWords = keyWords.ToString() };
           ++j;
