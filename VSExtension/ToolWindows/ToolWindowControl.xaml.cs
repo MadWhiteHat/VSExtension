@@ -80,18 +80,26 @@ namespace VSExtension.ToolWindows
       int count;
       // Replace comment entries in multichar string
       {
-        string stringDelim = @"""";
-        string commentInString = @""".*?" + comment + @".*?""";
+        string commentInString = @"[^\\]"".*?" + comment + @".*?[^\\]""";
         Match patternMatch = Regex.Match(func, commentInString);
 
         while (patternMatch.Success)
         {
           count = Strings(patternMatch.Value);
-          string newString = new string('\n', count);
-          newString = stringDelim + newString + stringDelim;
+          string newString = @"comment in string";
+          for (int i = 0; i < count; ++i)
+          {
+            newString += "\ncomment in string";
+          }
 
-          Regex reg = new Regex(commentInString);
-          func = reg.Replace(func, newString);
+          {
+            Regex reg = new Regex(comment);
+            newString = reg.Replace(patternMatch.Value, newString);
+          }
+          {
+            Regex reg = new Regex(commentInString);
+            func = reg.Replace(func, newString, 1);
+          }
           patternMatch = patternMatch.NextMatch();
         }
       }
@@ -107,11 +115,19 @@ namespace VSExtension.ToolWindows
           patternMatch = patternMatch.NextMatch();
         }
       }
-
     }
 
-    private void RemoveSingleSymbolQuote(ref string func)
+    private void RemoveEmptyCodeLines(ref string func)
     {
+      string emptyStringPattern = @"\n[ \t]*\n";
+      Match emptyStringMatch = Regex.Match(func, emptyStringPattern); 
+      while (emptyStringMatch.Success)
+      {
+        Regex reg = new Regex(emptyStringPattern);
+        func = reg.Replace(func, "\n", 1);
+        emptyStringMatch = Regex.Match(func, emptyStringPattern);
+      }
+
     }
 
     private void RemoveMultipleSymbolsQuote(ref string func)
@@ -146,52 +162,17 @@ namespace VSExtension.ToolWindows
 
     private int NumOfCodeLines(TextPoint begin, TextPoint end, ref string func)
     {
-      int delta = 0;
-
       ThreadHelper.ThrowIfNotOnUIThread();
 
       func = begin.CreateEditPoint().GetLines(begin.Line, end.Line + 1);
       func += '\n';
-      Regex reg = new Regex(@"\\'");
-      func = reg.Replace(func, "");
 
       ConvertToLf(ref func);
       RemoveSingleLineComment(ref func);
       RemoveMultipleLinesComment(ref func);
-      MessageBox.Show(func);
+      RemoveEmptyCodeLines(ref func);
 
-      bool emptyStr = true;
-      int duplicate = 0;
-      for (int i = 0; i < func.Length; ++i)
-      {
-        if (func[i] == '\n')
-        {
-          if (emptyStr)
-          {
-            ++delta;
-          }
-          if (duplicate > 1)
-          {
-            delta -= duplicate - 1;
-          }
-          emptyStr = true;
-          duplicate = 0;
-          continue;
-        }
-        if (func[i] != '\t' && func[i] != '\r' && func[i] != ' ')
-        {
-          emptyStr = false;
-        }
-        if (i > func.Length - 7)
-        {
-          continue;
-        }
-        if (func[i] == 'l' && func[i + 1] == 'a' && func[i + 2] == 'v' && func[i + 3] == '.' && func[i + 4] == 'a' && func[i + 5] == 'x')
-        {
-          ++duplicate;
-        }
-      }
-      return end.Line - begin.Line + 1 - delta;
+      return Strings(func);
     }
 
     private int NumOfKeyWords(string func)
