@@ -130,25 +130,10 @@ namespace VSExtension.ToolWindows
 
     }
 
-    private void RemoveMultipleSymbolsQuote(ref string func)
+    private void RemoveStrings(ref string func)
     {
-      string newString = "";
-      int count = 0;
-      Match match = Regex.Match(func, @"(""(.*?\\\r\n)*?.*?"")|(""(.*?\\\r\n)+?.*?\n)|(""(.*?\\\r\n)*?.*?\n)");
-      if (match.Success)
-      {
-        count = Strings(match.Value);
-        for (int i = 0; i < count; ++i)
-        {
-          newString += "lavax\n";
-        }
-        if (match.Value[match.Value.Length - 1] != '\n')
-        {
-          newString += " lavax ";
-        }
-        Regex reg = new Regex(@"(""(.*?\\\r\n)*?.*?"")|(""(.*?\\\r\n)+?.*?\n)|(""(.*?\\\r\n)*?.*?\n)");
-        func = reg.Replace(func, newString, 1);
-      }
+      Regex reg = new Regex(@"[^\\]""(.*?\n)*?.*?[^\\]""");
+      func = reg.Replace(func, @"""""");
     }
 
     private void ConvertToLf(ref string func)
@@ -175,23 +160,26 @@ namespace VSExtension.ToolWindows
       return Strings(func);
     }
 
-    private int NumOfKeyWords(string func)
+    private int NumOfKeyWords(ref string func)
     {
-      if (func == null)
+      // Remove strings then search for keywords
+      RemoveStrings(ref func);
+
+      string pattern = string.Empty;
+      int cnt;
+
+      for (int i = 0; i < KeyWords.Length - 1; ++i)
       {
-        return 0;
+        pattern += @"(\A\b" + KeyWords[i] + @"\b)|";
+        pattern += @"(\b" + KeyWords[i] + @"\b)|";
       }
-      int res = 0;
-      for (int i = 0; i < KeyWords.Length; ++i)
-      {
-        string pattern = "";
-        pattern += KeyWords[i] + "\\W";
-        res += Regex.Matches(func, @pattern).Count;
-        pattern = "(_";
-        pattern += KeyWords[i] + "\\W" + ")|(\\w" + KeyWords[i] + "\\W)";
-        res -= Regex.Matches(func, @pattern).Count;
-      }
-      return res;
+      
+      pattern += @"(\A\b" + KeyWords[KeyWords.Length - 1] + @"\b)|";
+      pattern += @"(\b" + KeyWords[KeyWords.Length - 1] + @"\b)";
+
+      cnt = Regex.Matches(func, pattern).Count;
+
+      return cnt;
     }
 
     private void Update(object sender, RoutedEventArgs e)
@@ -229,8 +217,13 @@ namespace VSExtension.ToolWindows
           name = codeFunc.FullName;
           lines = NumOfLines(startPoint, endPoint);
           linesWithoutComments = NumOfCodeLines(startPoint, endPoint, ref func);
-          keyWords = NumOfKeyWords(func);
-          InfoTable.Items[j] = new { Function = name, Lines = lines.ToString(), LinesWithoutComments = linesWithoutComments.ToString(), KeyWords = keyWords.ToString() };
+          keyWords = NumOfKeyWords(ref func);
+          InfoTable.Items[j] = new {
+            Function = name,
+            Lines = lines.ToString(),
+            LinesWithoutComments = linesWithoutComments.ToString(),
+            KeyWords = keyWords.ToString()
+          };
           ++j;
         }
       }
