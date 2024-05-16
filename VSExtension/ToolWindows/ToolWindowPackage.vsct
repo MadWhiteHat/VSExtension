@@ -52,14 +52,6 @@
         <Parent guid="guidVSExtensionPackageCmdSet" id="MyMenuGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
-          <ButtonText>VSExtensionToolWindow</ButtonText>
-        </Strings>
-      </Button>
-
-      <Button guid="guidVSExtensionPackageCmdSet" id="ToolWindowCommandId" priority="0x0100" type="Button">
-        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
-        <Icon guid="guidImages" id="bmpPic1" />
-        <Strings>
           <ButtonText>VSExtensionTool</ButtonText>
         </Strings>
       </Button>
