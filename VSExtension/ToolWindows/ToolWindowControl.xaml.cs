@@ -1,7 +1,7 @@
 ﻿using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
-using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -9,11 +9,21 @@ using System.Windows.Controls;
 
 namespace VSExtension.ToolWindows
 {
+  public class FunctionInfo
+  {
+    public string Function { get; set; }
+    public int Lines { get; set; }
+    public int LinesWithoutComments { get; set; }
+    public int KeyWords { get; set; }
+  }
+
   public partial class ToolWindowControl : UserControl
   {
     public ToolWindowControl()
     {
-      this.InitializeComponent();
+      FunctionsInfo = new ObservableCollection<FunctionInfo>();
+      InitializeComponent();
+      InfoTableLV.ItemsSource = FunctionsInfo;
     }
 
     [SuppressMessage("Microsoft.Globalization", "CA1300:SpecifyMessageBoxOptions", Justification = "Sample code")]
@@ -33,21 +43,6 @@ namespace VSExtension.ToolWindows
         }
       }
       return numOfObj;
-    }
-
-    private void AddRows(int count)
-    {
-      for (int i = 0; i < count; ++i)
-      {
-        InfoTable.Items.Add(new { Function = "0", Lines = "0", LinesWithoutComments = "0", KeyWords = "0" });
-      }
-    }
-    private void RemoveRows(int count)
-    {
-      for (int i = 0; i < count; ++i)
-      {
-        InfoTable.Items.RemoveAt(0);
-      }
     }
 
     private int NumOfLines(TextPoint startPoint, TextPoint endPoint)
@@ -187,7 +182,6 @@ namespace VSExtension.ToolWindows
       int lines;
       int linesWithoutComments;
       int keyWords;
-      int numOfObjects;
       string name;
       string func = null;
 
@@ -196,16 +190,8 @@ namespace VSExtension.ToolWindows
       DTE2 dte = VSExtensionPackage.GetGlobalService(typeof(DTE)) as DTE2;
       FileCodeModel fileCodeModel = dte.ActiveDocument.ProjectItem.FileCodeModel;
       CodeElements codeElements = fileCodeModel.CodeElements;
-      numOfObjects = NumOfObjects(codeElements);
-      if (InfoTable.Items.Count < numOfObjects)
-      {
-        AddRows(numOfObjects - InfoTable.Items.Count);
-      }
-      else if (InfoTable.Items.Count > numOfObjects)
-      {
-        RemoveRows(InfoTable.Items.Count - numOfObjects);
-      }
-      for (int i = 1, j = 0; i <= codeElements.Count; ++i)
+      FunctionsInfo.Clear();
+      for (int i = 1; i <= codeElements.Count; ++i)
       {
         CodeElement codeElement = codeElements.Item(i);
         if (codeElement.Kind == vsCMElement.vsCMElementFunction)
@@ -218,28 +204,32 @@ namespace VSExtension.ToolWindows
           lines = NumOfLines(startPoint, endPoint);
           linesWithoutComments = NumOfCodeLines(startPoint, endPoint, ref func);
           keyWords = NumOfKeyWords(ref func);
-          InfoTable.Items[j] = new {
+          FunctionsInfo.Add(new FunctionInfo()
+          {
             Function = name,
-            Lines = lines.ToString(),
-            LinesWithoutComments = linesWithoutComments.ToString(),
-            KeyWords = keyWords.ToString()
-          };
-          ++j;
+            Lines = lines,
+            LinesWithoutComments = linesWithoutComments,
+            KeyWords = keyWords
+          }
+          );
         }
       }
+      InfoTableLV.Items.Refresh();
     }
 
     private void Resize(object sender, RoutedEventArgs e)
     {
-      InfoTable.Columns[0].Width = MyToolWindow.ActualWidth / 4;
-      InfoTable.Columns[1].Width = MyToolWindow.ActualWidth / 4;
-      InfoTable.Columns[2].Width = MyToolWindow.ActualWidth / 4;
-      InfoTable.Columns[3].Width = MyToolWindow.ActualWidth / 4;
+      InfoTableGV.Columns[0].Width = MyToolWindow.ActualWidth / 4;
+      InfoTableGV.Columns[1].Width = MyToolWindow.ActualWidth / 4;
+      InfoTableGV.Columns[2].Width = MyToolWindow.ActualWidth / 4;
+      InfoTableGV.Columns[3].Width = MyToolWindow.ActualWidth / 4;
       if (MyToolWindow.ActualHeight - 70 > 0)
       {
-        InfoTable.Height = MyToolWindow.ActualHeight - 70;
+        InfoTableLV.Height = MyToolWindow.ActualHeight - 70;
       }
     }
+
+    public ObservableCollection<FunctionInfo> FunctionsInfo;
 
     string[] KeyWords =
     {
